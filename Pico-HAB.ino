@@ -1,7 +1,5 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <MPU6050.h>
-// #include "RP2040.h"
 #include "pico/cyw43_arch.h"
 
 #include "Pico-Hab.h"
@@ -12,83 +10,90 @@ Bmp bmp; // Create a Bmp object
 Mpu mpu; // Create a mpu object
 Mpu6050_Data mpu_data; // Create mpu data object
 
+uint8_t MPUIntStatus;
+volatile bool MPUInterrupt = false;
+
 void setup() {
-    Wire.setSDA(0);  // Pico SDA on GP0
-    Wire.setSCL(1);  // Pico SCL on GP1
-    Wire.begin();
+  Wire.setSDA(0);  // Pico SDA on GP0
+  Wire.setSCL(1);  // Pico SCL on GP1
+  Wire.begin();
 
-    Serial.begin(115200);  // Start serial communication
-    delay(1000);           
+  Serial.begin(115200);  // Start serial communication
+  while (!Serial); // wait for serial port
 
-    rp2040.wdt_begin(8000); // Timeout after 8 seconds - reboot
+  rp2040.wdt_begin(8000); // Timeout after 8 seconds - reboot
 
-    pinMode(LED_PIN, OUTPUT);
-    // Initialize BMP180 sensor
-    if (!bmp.begin()) {
-        Serial.println("Failed to initialize BMP180!");
-        while (1); // Halt if initialization fails
-    }
+  /* Init onboard LED */ 
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
 
-    Serial.println("BMP180 initialized!");
+  /* Init Interrupts */ 
+  pinMode(MPU_DMP_INT_PIN, INPUT_PULLUP);
 
-    if(!mpu.begin()) {
-        Serial.println("Failed to initialize MPU6050!");
-        while (1); // Halt if initialization fails
-    }
-    Serial.println("MPU6050 initialized!");
+  attachInterrupt(digitalPinToInterrupt(MPU_DMP_INT_PIN), DMPDataReady, RISING);
+  
+  // Initialize BMP180 sensor
+  if (!bmp.begin()) {
+      Serial.println("Failed to initialize BMP180!");
+      while (1); // Halt if initialization fails
+  }
 
+  Serial.println("BMP180 initialized!");
+
+  if(!mpu.begin()) {
+      Serial.println("Failed to initialize MPU6050!");
+      while (1); // Halt if initialization fails
+  }
+  Serial.println("MPU6050 initialized!");
+  uint8_t status = mpu.setupDMP();
 }
 
 void read_Bmp_Sensor() {
-    // Read data from BMP180 sensor
-    float temperature = bmp.getTemperature();
-    float pressure = bmp.getPressure();
-    float altitude = bmp.getAltitude();
+  // Read data from BMP180 sensor
+  float temperature = bmp.getTemperature();
+  float pressure = bmp.getPressure();
+  float altitude = bmp.getAltitude();
 
-    // Print sensor data to Serial Monitor
-    Serial.print("Temperature: ");
-    Serial.print(temperature);
-    Serial.println(" °C");
+  // Print sensor data to Serial Monitor
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.println(" °C");
 
-    Serial.print("Pressure: ");
-    Serial.print(pressure);
-    Serial.println(" Pa");
+  Serial.print("Pressure: ");
+  Serial.print(pressure);
+  Serial.println(" Pa");
 
-    Serial.print("Altitude: ");
-    Serial.print(altitude);
-    Serial.println(" meters");
+  Serial.print("Altitude: ");
+  Serial.print(altitude);
+  Serial.println(" meters");
 }
 
 void read_Mpu_Sensor() {
   // Read data from BMP180 sensor
-  mpu.getData_Raw(&mpu_data);
-
-  Serial.print("Accel: ");
-  Serial.print("X="); Serial.print(mpu_data.accel_Raw[0]);
-  Serial.print(" Y="); Serial.print(mpu_data.accel_Raw[1]);
-  Serial.print(" Z="); Serial.print(mpu_data.accel_Raw[2]);
-
-  Serial.print(" | Gyro: ");
-  Serial.print("X="); Serial.print(mpu_data.gyro_Raw[0]);
-  Serial.print(" Y="); Serial.print(mpu_data.gyro_Raw[1]);
-  Serial.print(" Z="); Serial.println(mpu_data.gyro_Raw[2]);
+  Serial.print("ypr\t");
+  Serial.print(RADS_TO_DEG( mpu_data.ypr[YAW_DATA] ));
+  Serial.print("\t");
+  Serial.print(RADS_TO_DEG( mpu_data.ypr[PITCH_DATA] ));
+  Serial.print("\t");
+  Serial.println(RADS_TO_DEG( mpu_data.ypr[ROLL_DATA] ));
 }
 
 void loop() {
   // Reset the watchdog timer
   rp2040.wdt_reset();
 
-  read_Bmp_Sensor();
-  read_Mpu_Sensor();
+  // read_Bmp_Sensor();
 
-  delay(500);
+  if(MPUInterrupt) {
+    mpu.output_YPR(&mpu_data);
+    read_Mpu_Sensor();
+    MPUInterrupt = false;
+  }
+
+  delay(100);
   Serial.println("Done Loop!");
 }
 
-void RxI2C(int num_bytes) {
-  digitalWrite(LED_PIN, HIGH);
-}
-
-void TxI2C() {
-  digitalWrite(LED_PIN, HIGH);
+void DMPDataReady() {
+  MPUInterrupt = true;
 }
