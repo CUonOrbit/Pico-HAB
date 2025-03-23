@@ -15,17 +15,42 @@
 
 #define RADS_TO_DEG(x) (x * 180/M_PI)
 
+struct MpuRawData {
+  int16_t accel[3];  // X, Y, Z acceleration raw data
+  int16_t gyro[3];   // X, Y, Z gyro raw data
 
-struct Mpu6050_Data {
-  uint16_t packetSize;
-  Quaternion q;           // [w, x, y, z]         quaternion container
-  VectorFloat gravity;    // [x, y, z]            gravity vector
-  uint8_t fifoBuffer[64];
+  void print() {
+    Serial.print("Accel: ");
+    Serial.print(accel[X_AXIS_DATA]); Serial.print(", ");
+    Serial.print(accel[Y_AXIS_DATA]); Serial.print(", ");
+    Serial.println(accel[Z_AXIS_DATA]);
 
-  /* sensor information */ 
-  int16_t accel_Raw[3];
-  int16_t gyro_Raw[3];
-  float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector measured in rad/s
+    Serial.print("Gyro: ");
+    Serial.print(gyro[X_AXIS_DATA]); Serial.print(", ");
+    Serial.print(gyro[Y_AXIS_DATA]); Serial.print(", ");
+    Serial.println(gyro[Z_AXIS_DATA]);
+  }
+};
+
+/* Current YPR method experiences 'Gimbal Lock' 
+    Basically, if we pitch or roll the sensor +- 90 deg, the pitch or roll axis will allign with the yaw
+    axis. and so they become indistinguishable. This is easy to imagine with an actual gyro with 3 gimbals, 
+    but a similar thing happens when usnig Euler angles, even when the IC doesnt have a gimbal (its MEMS). 
+    The euler representations of 3d space can still allign like the gimbal. 
+
+    Solution is to update to a quaternion calculation method using DMP
+*/ 
+struct MpuDMPData {
+  Quaternion q;
+  VectorFloat gravity;
+  float ypr[3];  // Yaw, Pitch, Roll in radians
+
+  void print() {
+    Serial.print("YPR: ");
+    Serial.print(RADS_TO_DEG(ypr[YAW_DATA])); Serial.print("°, ");
+    Serial.print(RADS_TO_DEG(ypr[PITCH_DATA])); Serial.print("°, ");
+    Serial.print(RADS_TO_DEG(ypr[ROLL_DATA])); Serial.println("°, ");
+  }
 };
 
 class Mpu {
@@ -36,10 +61,13 @@ public:
     
     uint8_t setupDMP();
     /* get Data in different formats */
-    void getData_Raw(Mpu6050_Data* data);
-    void output_YPR(Mpu6050_Data* data);
+    void getDataRaw(MpuRawData* data);
+    void getDataDMP(MpuDMPData* data);
 
     /* TODO: Methods for mps2/dps data, onboard DMP for offset and fused data from both gyro and accel */
+
+private:
+    uint8_t fifoBuffer[64];  // Move buffer inside the class
 };
 
 #endif

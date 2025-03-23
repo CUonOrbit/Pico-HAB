@@ -8,7 +8,7 @@
 
 Bmp bmp; // Create a Bmp object
 Mpu mpu; // Create a mpu object
-Mpu6050_Data mpu_data; // Create mpu data object
+MpuDMPData Mpu_DMP; // Create mpu data object
 
 uint8_t MPUIntStatus;
 volatile bool MPUInterrupt = false;
@@ -68,16 +68,6 @@ void read_Bmp_Sensor() {
   Serial.println(" meters");
 }
 
-void read_Mpu_Sensor() {
-  // Read data from BMP180 sensor
-  Serial.print("ypr\t");
-  Serial.print(RADS_TO_DEG( mpu_data.ypr[YAW_DATA] ));
-  Serial.print("\t");
-  Serial.print(RADS_TO_DEG( mpu_data.ypr[PITCH_DATA] ));
-  Serial.print("\t");
-  Serial.println(RADS_TO_DEG( mpu_data.ypr[ROLL_DATA] ));
-}
-
 void loop() {
   // Reset the watchdog timer
   rp2040.wdt_reset();
@@ -85,13 +75,10 @@ void loop() {
   // read_Bmp_Sensor();
 
   if(MPUInterrupt) {
-    mpu.output_YPR(&mpu_data);
-    read_Mpu_Sensor();
+    mpu.getDataDMP(&Mpu_DMP);
+    Mpu_DMP.print();
     MPUInterrupt = false;
   }
-
-  delay(100);
-  Serial.println("Done Loop!");
 }
 
 void DMPDataReady() {

@@ -4,8 +4,6 @@
 
 static MPU6050 mpu(MPU_DEV_ADDR);
 
-
-
 Mpu::Mpu() {
   // Empty Constructor
 }
@@ -46,28 +44,19 @@ uint8_t Mpu::setupDMP() {
   return devStatus;
 }
 
-void Mpu::output_YPR(Mpu6050_Data *data) {  
-  data->packetSize = mpu.dmpGetFIFOPacketSize(); //Get expected DMP packet size for later comparison
-  mpu.dmpGetCurrentFIFOPacket(data->fifoBuffer);
+void Mpu::getDataDMP(MpuDMPData* data) {  
+  // packetSize = mpu.dmpGetFIFOPacketSize(); // Get expected DMP packet size for later comparison
+  mpu.dmpGetCurrentFIFOPacket(fifoBuffer);
 
-  mpu.dmpGetQuaternion(&data->q, data->fifoBuffer);
+  mpu.dmpGetQuaternion(&data->q, fifoBuffer);
   mpu.dmpGetGravity(&data->gravity, &data->q);
   mpu.dmpGetYawPitchRoll(data->ypr, &data->q, &data->gravity);
 }
 
-void Mpu::getData_Raw(Mpu6050_Data* data) {
+void Mpu::getDataRaw(MpuRawData* data) {
   int16_t accelRaw[3];
   int16_t gyroRaw[3];
 
-  mpu.getMotion6(&accelRaw[X_AXIS_DATA], &accelRaw[Y_AXIS_DATA], &accelRaw[Z_AXIS_DATA], 
-                  &gyroRaw[X_AXIS_DATA], &gyroRaw[Y_AXIS_DATA], &gyroRaw[Z_AXIS_DATA]);
-
-
-    data->accel_Raw[X_AXIS_DATA] = accelRaw[X_AXIS_DATA];
-    data->accel_Raw[Y_AXIS_DATA] = accelRaw[Y_AXIS_DATA];
-    data->accel_Raw[Z_AXIS_DATA] = accelRaw[Z_AXIS_DATA];
-
-    data->gyro_Raw[X_AXIS_DATA] = gyroRaw[X_AXIS_DATA];
-    data->gyro_Raw[Y_AXIS_DATA] = gyroRaw[Y_AXIS_DATA];
-    data->gyro_Raw[Z_AXIS_DATA] = gyroRaw[Z_AXIS_DATA];
+  mpu.getMotion6(&data->accel[0], &data->accel[1], &data->accel[2], 
+                  &data->gyro[0], &data->gyro[1], &data->gyro[2]);
 }
