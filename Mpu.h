@@ -43,13 +43,24 @@ struct MpuRawData {
 struct MpuDMPData {
   Quaternion q;
   VectorFloat gravity;
-  float ypr[3];  // Yaw, Pitch, Roll in radians
+  float eulerAngles[3];
 
   void print() {
-    Serial.print("YPR: ");
-    Serial.print(RADS_TO_DEG(ypr[YAW_DATA])); Serial.print("°, ");
-    Serial.print(RADS_TO_DEG(ypr[PITCH_DATA])); Serial.print("°, ");
-    Serial.print(RADS_TO_DEG(ypr[ROLL_DATA])); Serial.println("°, ");
+    Serial.print("Euler Angler (Y, P, R): ");
+    Serial.print(RADS_TO_DEG(eulerAngles[YAW_DATA])); Serial.print("°, ");
+    Serial.print(RADS_TO_DEG(eulerAngles[PITCH_DATA])); Serial.print("°, ");
+    Serial.print(RADS_TO_DEG(eulerAngles[ROLL_DATA])); Serial.println("°, ");
+  }
+
+  void print_Quaternion() {
+    Serial.print("quat\t");
+    Serial.print(q.w);
+    Serial.print("\t");
+    Serial.print(q.x);
+    Serial.print("\t");
+    Serial.print(q.y);
+    Serial.print("\t");
+    Serial.println(q.z);
   }
 };
 
