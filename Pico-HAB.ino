@@ -8,8 +8,6 @@
 
 Bmp bmp; // Create a Bmp object
 IMU imu; // Create a mpu object
-MpuDMPData Mpu_DMP; // Create mpu data object
-MagData mag_data;
 
 volatile bool MPUInterrupt = false;
 volatile bool LISInterrupt = false;
@@ -47,8 +45,6 @@ void setup() {
       while (1); // Halt if initialization fails
   }
   Serial.println("MPU6050 and LIS3MDL initialized!");
-
-  uint8_t status = imu.setupDMP();
 }
 
 void read_Bmp_Sensor() {
@@ -80,9 +76,8 @@ void loop() {
 
   if(MPUInterrupt) {
     MPUInterrupt = false;
-      
-    imu.getMagDataRaw(&mag_data);
-    imu.getDataDMP(&Mpu_DMP);
+    imu.updateOrientation();
+    imu.serialPrintOrientation();
     // Mpu_DMP.print_Quaternion();
   }
   

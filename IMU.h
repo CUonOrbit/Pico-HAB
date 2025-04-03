@@ -15,86 +15,21 @@
 
 #define RADS_TO_DEG(x) (x * 180/M_PI)
 
-
-struct MpuRawData {
-  int16_t accel[3];  // X, Y, Z acceleration raw data
-  int16_t gyro[3];   // X, Y, Z gyro raw data
-
-  void print() {
-    Serial.print("Accel: ");
-    Serial.print(accel[X_AXIS_DATA]); Serial.print(", ");
-    Serial.print(accel[Y_AXIS_DATA]); Serial.print(", ");
-    Serial.println(accel[Z_AXIS_DATA]);
-
-    Serial.print("Gyro: ");
-    Serial.print(gyro[X_AXIS_DATA]); Serial.print(", ");
-    Serial.print(gyro[Y_AXIS_DATA]); Serial.print(", ");
-    Serial.println(gyro[Z_AXIS_DATA]);
-  }
-};
-
-/* Current YPR method experiences 'Gimbal Lock' 
-    Basically, if we pitch or roll the sensor +- 90 deg, the pitch or roll axis will allign with the yaw
-    axis. and so they become indistinguishable. This is easy to imagine with an actual gyro with 3 gimbals, 
-    but a similar thing happens when usnig Euler angles, even when the IC doesnt have a gimbal (its MEMS). 
-    The euler representations of 3d space can still allign like the gimbal. 
-
-    Solution is to update to a quaternion calculation method using DMP
-*/ 
-struct MpuDMPData {
-  Quaternion q;
-  VectorFloat gravity;
-  float eulerAngles[3];
-
-  void print() {
-    Serial.print("Euler Angler (Y, P, R): ");
-    Serial.print(RADS_TO_DEG(eulerAngles[YAW_DATA])); Serial.print("°, ");
-    Serial.print(RADS_TO_DEG(eulerAngles[PITCH_DATA])); Serial.print("°, ");
-    Serial.print(RADS_TO_DEG(eulerAngles[ROLL_DATA])); Serial.println("°, ");
-  }
-
-  void print_Quaternion() {
-    Serial.print("quat\t");
-    Serial.print(q.w);
-    Serial.print("\t");
-    Serial.print(q.x);
-    Serial.print("\t");
-    Serial.print(q.y);
-    Serial.print("\t");
-    Serial.println(q.z);
-  }
-};
-
-struct MagData {
-  float magDataRaw[3];
-
-    void print() {
-    Serial.print("Mag Data (X, Y, Z): ");
-    Serial.print(magDataRaw[0]); Serial.print(", ");
-    Serial.print(magDataRaw[1]); Serial.print(", ");
-    Serial.print(magDataRaw[2]); Serial.println(", ");
-  }
-};
-
 class IMU {
 public:
 
   IMU(); // Constructor
   bool begin(); // Initialize the MPU6050 sensor
   void updateOrientation();
-  
-  /* get Data in different formats */
-  void getDataRaw(MpuRawData* data);
-  void getDataDMP(MpuDMPData* data);
 
-  void getMagDataRaw(MagData* data);
+  void serialPrintOrientation();
 
-  bool getDMPStatus();
+  Quaternion getQuatData();
+  float* getMagData();
   /* TODO: Methods for mps2/dps data, onboard DMP for offset and fused data from both gyro and accel */
 
 private:
   uint8_t fifoBuffer[64];  // Move buffer inside the class
-
     
   struct IMU_Data {
     /* nested struct for raw data? */
@@ -108,6 +43,7 @@ private:
     float magData[3]; // raw currently, will change to offset values with hard/soft metal factors 
   } IMU_Data;
 
+  void convertQuaternionToEuler();
 };
 
 #endif
