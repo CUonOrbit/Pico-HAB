@@ -4,14 +4,15 @@
 
 #include "Pico-Hab.h"
 #include "Bmp.h"
-#include "Mpu.h"
+#include "IMU.h"
 
 Bmp bmp; // Create a Bmp object
-Mpu mpu; // Create a mpu object
+IMU imu; // Create a mpu object
 MpuDMPData Mpu_DMP; // Create mpu data object
+MagData mag_data;
 
-uint8_t MPUIntStatus;
 volatile bool MPUInterrupt = false;
+volatile bool LISInterrupt = false;
 
 void setup() {
   Wire.setSDA(0);  // Pico SDA on GP0
@@ -29,23 +30,25 @@ void setup() {
 
   /* Init Interrupts */ 
   pinMode(MPU_DMP_INT_PIN, INPUT_PULLUP);
+  pinMode(LIS3MDL_DRDY_PIN, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(MPU_DMP_INT_PIN), DMPDataReady, RISING);
+  attachInterrupt(digitalPinToInterrupt(LIS3MDL_DRDY_PIN), MagDataReady, RISING);
   
   // Initialize BMP180 sensor
   if (!bmp.begin()) {
-      Serial.println("Failed to initialize BMP180!");
-      while (1); // Halt if initialization fails
+    Serial.println("Failed to initialize BMP180!");
+    while (1); // Halt if initialization fails
   }
 
   Serial.println("BMP180 initialized!");
 
-  if(!mpu.begin()) {
-      Serial.println("Failed to initialize MPU6050!");
+  if(!imu.begin()) {
       while (1); // Halt if initialization fails
   }
-  Serial.println("MPU6050 initialized!");
-  uint8_t status = mpu.setupDMP();
+  Serial.println("MPU6050 and LIS3MDL initialized!");
+
+  uint8_t status = imu.setupDMP();
 }
 
 void read_Bmp_Sensor() {
@@ -71,16 +74,25 @@ void read_Bmp_Sensor() {
 void loop() {
   // Reset the watchdog timer
   rp2040.wdt_reset();
+  // Serial.println(mpu.getDMPStatus());
 
   // read_Bmp_Sensor();
 
   if(MPUInterrupt) {
-    mpu.getDataDMP(&Mpu_DMP);
-    Mpu_DMP.print();
     MPUInterrupt = false;
+      
+    imu.getMagDataRaw(&mag_data);
+    imu.getDataDMP(&Mpu_DMP);
+    // Mpu_DMP.print_Quaternion();
   }
+  
+  sleep_ms(50);
 }
 
 void DMPDataReady() {
   MPUInterrupt = true;
+}
+
+void MagDataReady() {
+  LISInterrupt = true;
 }

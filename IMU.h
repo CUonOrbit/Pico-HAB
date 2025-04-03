@@ -1,5 +1,5 @@
-#ifndef MPU_H
-#define MPU_H
+#ifndef IMU_H
+#define IMU_H
 
 #include "MPU6050_6Axis_MotionApps20.h"
 
@@ -14,6 +14,7 @@
 #define GRAVITY_F 9.81f // m/s^2
 
 #define RADS_TO_DEG(x) (x * 180/M_PI)
+
 
 struct MpuRawData {
   int16_t accel[3];  // X, Y, Z acceleration raw data
@@ -64,21 +65,49 @@ struct MpuDMPData {
   }
 };
 
-class Mpu {
+struct MagData {
+  float magDataRaw[3];
+
+    void print() {
+    Serial.print("Mag Data (X, Y, Z): ");
+    Serial.print(magDataRaw[0]); Serial.print(", ");
+    Serial.print(magDataRaw[1]); Serial.print(", ");
+    Serial.print(magDataRaw[2]); Serial.println(", ");
+  }
+};
+
+class IMU {
 public:
 
-    Mpu(); // Constructor
-    bool begin(); // Initialize the MPU6050 sensor
-    
-    uint8_t setupDMP();
-    /* get Data in different formats */
-    void getDataRaw(MpuRawData* data);
-    void getDataDMP(MpuDMPData* data);
+  IMU(); // Constructor
+  bool begin(); // Initialize the MPU6050 sensor
+  void updateOrientation();
+  
+  /* get Data in different formats */
+  void getDataRaw(MpuRawData* data);
+  void getDataDMP(MpuDMPData* data);
 
-    /* TODO: Methods for mps2/dps data, onboard DMP for offset and fused data from both gyro and accel */
+  void getMagDataRaw(MagData* data);
+
+  bool getDMPStatus();
+  /* TODO: Methods for mps2/dps data, onboard DMP for offset and fused data from both gyro and accel */
 
 private:
-    uint8_t fifoBuffer[64];  // Move buffer inside the class
+  uint8_t fifoBuffer[64];  // Move buffer inside the class
+
+    
+  struct IMU_Data {
+    /* nested struct for raw data? */
+
+    /* Accel + Gyro Data - MPU6050 DMP */
+    Quaternion q;
+    VectorFloat gravity;
+    float eulerAngles[3];
+
+    /* Magnetometer Data - LIS3MDL */
+    float magData[3]; // raw currently, will change to offset values with hard/soft metal factors 
+  } IMU_Data;
+
 };
 
 #endif
