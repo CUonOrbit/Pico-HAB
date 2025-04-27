@@ -1,6 +1,6 @@
 #include "Bmp.h"
 
-// Constructor
+// Constructor ffff
 Bmp::Bmp() {
     // Nothing to do here
 }
